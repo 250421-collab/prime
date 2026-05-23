@@ -33,7 +33,6 @@
             display: none !important;
         }
 
-        /* Логин форма */
         .login-container {
             display: flex;
             justify-content: center;
@@ -83,7 +82,6 @@
             border-color: #059669;
         }
 
-        /* Шапка */
         .header {
             background: white;
             border-radius: 24px;
@@ -137,7 +135,6 @@
             cursor: pointer;
         }
 
-        /* Сетка 2x2 */
         .grid-2x2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -169,7 +166,6 @@
             border-left: 4px solid #059669;
         }
 
-        /* Кнопки статусов */
         .status-buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -193,7 +189,6 @@
         .status-btn.finish { background: #ef4444; }
         .status-btn.exit { background: #6b7280; }
 
-        /* Таймер */
         .timer {
             text-align: center;
             padding: 20px;
@@ -217,7 +212,11 @@
             color: #6ee7b7;
         }
 
-        /* Достижения */
+        .total-stats {
+            margin-top: 12px;
+            font-size: 12px;
+        }
+
         .badge-list {
             display: flex;
             flex-wrap: wrap;
@@ -246,7 +245,6 @@
             opacity: 0.5;
         }
 
-        /* Рейтинг и группа */
         .rank-list, .member-list {
             max-height: 300px;
             overflow-y: auto;
@@ -300,7 +298,6 @@
             50% { opacity: 0.5; }
         }
 
-        /* Чат */
         .chat-messages {
             height: 280px;
             overflow-y: auto;
@@ -374,7 +371,6 @@
             cursor: pointer;
         }
 
-        /* Кнопки действий */
         .action-bar {
             display: flex;
             gap: 12px;
@@ -405,7 +401,6 @@
             color: white;
         }
 
-        /* Модалка */
         .modal {
             display: none;
             position: fixed;
@@ -457,7 +452,6 @@
             border-bottom: 1px solid #e5e7eb;
         }
 
-        /* Уведомления */
         .notification {
             position: fixed;
             top: 20px;
@@ -506,7 +500,6 @@
     </div>
 
     <div class="grid-2x2">
-        <!-- Карточка 1: Моя сессия -->
         <div class="card">
             <h3>🎯 Моя сессия</h3>
             <div class="status-buttons">
@@ -518,6 +511,7 @@
             <div class="timer">
                 <div class="timer-display" id="timer">0д 00:00:00</div>
                 <div style="font-size: 12px; margin-top: 8px;">текущая сессия</div>
+                <div class="total-stats" id="totalStats" style="margin-top: 12px;"></div>
             </div>
             <div class="action-bar">
                 <button class="action-btn stats-btn" id="statsBtn">📊 Статистика</button>
@@ -525,26 +519,22 @@
             </div>
         </div>
 
-        <!-- Карточка 2: Мои достижения -->
         <div class="card">
             <h3>🏆 Мои достижения</h3>
             <div class="badge-list" id="achievementsList">Загрузка...</div>
         </div>
 
-        <!-- Карточка 3: Топ студентов -->
         <div class="card">
             <h3>🏆 Топ студентов</h3>
             <div class="rank-list" id="ratingList">Загрузка...</div>
         </div>
 
-        <!-- Карточка 4: Монитор группы -->
         <div class="card">
             <h3>👥 Монитор группы</h3>
             <div class="member-list" id="groupList">Загрузка...</div>
         </div>
     </div>
 
-    <!-- Чат на всю ширину -->
     <div class="card card-full">
         <h3>💬 Общий чат</h3>
         <div class="chat-messages" id="chatMessages">
@@ -606,7 +596,8 @@
     }
 
     function updateTimerDisplay() {
-        document.getElementById('timer').textContent = formatTime(totalStudySeconds);
+        const timerEl = document.getElementById('timer');
+        if (timerEl) timerEl.textContent = formatTime(totalStudySeconds);
     }
 
     async function loadTotalStats() {
@@ -616,8 +607,12 @@
             .select('total_seconds')
             .eq('user_id', currentUser.id)
             .maybeSingle();
-        if (data) {
-            document.getElementById('totalStats').innerHTML = `Всего: ${formatTime(data.total_seconds)}`;
+        
+        const totalStatsEl = document.getElementById('totalStats');
+        if (totalStatsEl && data) {
+            totalStatsEl.innerHTML = `Всего: ${formatTime(data.total_seconds)}`;
+        } else if (totalStatsEl) {
+            totalStatsEl.innerHTML = 'Всего: 0д 00:00:00';
         }
     }
 
@@ -735,11 +730,14 @@
             .eq('user_id', currentUser.id);
         const unlocked = new Set(data?.map(a => a.achievement) || []);
         
-        document.getElementById('achievementsList').innerHTML = ACHIEVEMENTS.map(ach => `
-            <div class="badge ${unlocked.has(ach.key) ? 'unlocked' : 'locked'}" title="${ach.desc}">
-                ${ach.name}
-            </div>
-        `).join('');
+        const achievementsList = document.getElementById('achievementsList');
+        if (achievementsList) {
+            achievementsList.innerHTML = ACHIEVEMENTS.map(ach => `
+                <div class="badge ${unlocked.has(ach.key) ? 'unlocked' : 'locked'}" title="${ach.desc}">
+                    ${ach.name}
+                </div>
+            `).join('');
+        }
     }
 
     async function loadRating() {
@@ -749,12 +747,15 @@
             .order('study_seconds', { ascending: false })
             .limit(10);
         
+        const ratingList = document.getElementById('ratingList');
+        if (!ratingList) return;
+        
         if (!data || data.length === 0) {
-            document.getElementById('ratingList').innerHTML = '<div>Нет данных</div>';
+            ratingList.innerHTML = '<div>Нет данных</div>';
             return;
         }
         
-        document.getElementById('ratingList').innerHTML = data.map((user, index) => {
+        ratingList.innerHTML = data.map((user, index) => {
             let rankClass = '';
             if (index === 0) rankClass = 'gold';
             else if (index === 1) rankClass = 'silver';
@@ -779,7 +780,10 @@
         
         const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
         
-        document.getElementById('groupList').innerHTML = data.map(user => {
+        const groupList = document.getElementById('groupList');
+        if (!groupList) return;
+        
+        groupList.innerHTML = data.map(user => {
             const isOnline = user.status_type !== 'exit' && user.last_active && user.last_active > twoMinutesAgo;
             let statusIcon = '';
             switch(user.status_type) {
@@ -884,15 +888,19 @@
         const hours = Math.floor(totalSec / 3600);
         const mins = Math.floor((totalSec % 3600) / 60);
         
-        document.getElementById('statsContent').innerHTML = `
-            <div class="stat-item"><span>👤 Имя:</span><span>${escapeHtml(profile?.username)}</span></div>
-            <div class="stat-item"><span>📧 Email:</span><span>${escapeHtml(profile?.email)}</span></div>
-            <div class="stat-item"><span>⏱ Время учёбы:</span><span>${hours}ч ${mins}м</span></div>
-            <div class="stat-item"><span>💬 Сообщений:</span><span>${msgCount || 0}</span></div>
-            <div class="stat-item"><span>🏆 Достижений:</span><span>${achievements?.length || 0}/${ACHIEVEMENTS.length}</span></div>
-            <div class="stat-item"><span>🟢 Статус:</span><span>${profile?.status || '—'}</span></div>
-        `;
-        document.getElementById('statsModal').classList.add('active');
+        const statsContent = document.getElementById('statsContent');
+        if (statsContent) {
+            statsContent.innerHTML = `
+                <div class="stat-item"><span>👤 Имя:</span><span>${escapeHtml(profile?.username)}</span></div>
+                <div class="stat-item"><span>📧 Email:</span><span>${escapeHtml(profile?.email)}</span></div>
+                <div class="stat-item"><span>⏱ Время учёбы:</span><span>${hours}ч ${mins}м</span></div>
+                <div class="stat-item"><span>💬 Сообщений:</span><span>${msgCount || 0}</span></div>
+                <div class="stat-item"><span>🏆 Достижений:</span><span>${achievements?.length || 0}/${ACHIEVEMENTS.length}</span></div>
+                <div class="stat-item"><span>🟢 Статус:</span><span>${profile?.status || '—'}</span></div>
+            `;
+        }
+        const modal = document.getElementById('statsModal');
+        if (modal) modal.classList.add('active');
     }
 
     async function updateHeartbeat() {
@@ -1000,8 +1008,10 @@
     async function onAuthStateChange(user) {
         if (user) {
             await syncProfile(user);
-            document.getElementById('userName').textContent = user.user_metadata?.full_name || user.email;
-            document.getElementById('userAvatar').textContent = (user.user_metadata?.full_name || user.email || 'U')[0].toUpperCase();
+            const userNameEl = document.getElementById('userName');
+            const userAvatarEl = document.getElementById('userAvatar');
+            if (userNameEl) userNameEl.textContent = user.user_metadata?.full_name || user.email;
+            if (userAvatarEl) userAvatarEl.textContent = (user.user_metadata?.full_name || user.email || 'U')[0].toUpperCase();
             await loadGroup();
             await loadMessages();
             await loadRating();
@@ -1010,13 +1020,17 @@
             if (heartbeatInterval) clearInterval(heartbeatInterval);
             heartbeatInterval = setInterval(updateHeartbeat, 30000);
             setupRealtime();
-            document.getElementById('loginPage').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
+            const loginPage = document.getElementById('loginPage');
+            const app = document.getElementById('app');
+            if (loginPage) loginPage.classList.add('hidden');
+            if (app) app.classList.remove('hidden');
         } else {
             currentUser = null;
             stopTimer();
-            document.getElementById('loginPage').classList.remove('hidden');
-            document.getElementById('app').classList.add('hidden');
+            const loginPage = document.getElementById('loginPage');
+            const app = document.getElementById('app');
+            if (loginPage) loginPage.classList.remove('hidden');
+            if (app) app.classList.add('hidden');
         }
     }
 
@@ -1029,11 +1043,12 @@
     document.getElementById('statsBtn')?.addEventListener('click', showStats);
     document.getElementById('themeBtn')?.addEventListener('click', toggleTheme);
     document.getElementById('closeModal')?.addEventListener('click', () => {
-        document.getElementById('statsModal').classList.remove('active');
+        const modal = document.getElementById('statsModal');
+        if (modal) modal.classList.remove('active');
     });
     document.getElementById('statsModal')?.addEventListener('click', (e) => {
         if (e.target === document.getElementById('statsModal')) {
-            document.getElementById('statsModal').classList.remove('active');
+            document.getElementById('statsModal')?.classList.remove('active');
         }
     });
     
